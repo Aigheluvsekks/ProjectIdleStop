@@ -20,6 +20,22 @@ void DataValidity_Check(MachineData_t *data)
     data->BoomUP_Press_Valid = (data->BoomUP_press >= BOOMUP_PRESS_MIN &&
     		data->BoomUP_Press <= BOOMUP_PRESS_MAX);
 
-    data->AR
+       data->ArmDig_Press_Valid = (data->ArmDig_Press >= ARMDIG_PRESS_MIN &&
+    		data->ArmDig_Press <= ARMDIG_PRESS_MAX);
+
+    data->BucketDump_Press_Valid = (data->BucketDump_Press >= BUCKETDUMP_PRESS_MIN &&
+    		data->BucketDump_Press <= BUCKETDUMP_PRESS_MAX);
+
+    data->TravelLR_Press_Valid = (data->TravelLR_Press >= TRAVEL_PRESS_MIN &&
+    		data->TravelLR_Press <= TRAVEL_PRESS_MAX);
+
+    data->TravelLF_Press_Valid = (data->TravelLF_Press >= TRAVEL_PRESS_MIN &&
+        		data->TravelLF_Press <= TRAVEL_PRESS_MAX);
+
+    data->TravelRR_Press_Valid = (data->TravelRR_Press >= TRAVEL_PRESS_MIN &&
+        		data->TravelRR_Press <= TRAVEL_PRESS_MAX);
+
+    data->TravelRF_Press_Valid = (data->TravelRF_Press >= TRAVEL_PRESS_MIN &&
+        		data->TravelRF_Press <= TRAVEL_PRESS_MAX);
 
 }
