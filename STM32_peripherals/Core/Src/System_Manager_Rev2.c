@@ -1,24 +1,33 @@
-#include "system_manager.h"
-#include "decision.h"
-#include "system_health.h"
-#include "timer_manager.h"
+#include "System_manager.h"
+#include "Decision.h"
+#include "System_Health.h"
+#include "Timer_Manager.h"
+#include "io_output.h"
 
 
 void SystemManager_Process(void)
 {
     SystemHealth_t health =
         SystemHealth_Get();
+    /* Inisiasi variabel "health" yang memiliki tipe "SystemHealth_t" refer to
+     * System_Health.h and System_Health.c
+     */
 
     MachineCondition_t condition =
         Decision_GetMachineCondition(
             CAN_GetMachineData()
         );
 
+    /* Inisiasi variabel "condition" yang memiliki tipe "MachineCondition_t" refer to
+         * Refer to Decision.h and Decision.c
+         */
 
     /*
-     * Safety first:
-     * If our information isn't trustworthy,
-     * don't proceed with auto shutdown.
+     * Cek Health / kesehatan sistem
+     * Cek pembacaan CAN apakah valid dan sesuai dengan kriteria yang ditentukan
+     * Jika pembacaan CAN gagal/ tidak memenuhi kriteria maka idle-stop akan
+     * berhenti  (TimerManager_Stop)
+     * Sehingga waktu countdown untuk menuju mati mesin akan direset/distop
      */
 
     if (health != SYSTEM_HEALTH_OK)
@@ -40,19 +49,35 @@ void SystemManager_Process(void)
                 system_state = SYSTEM_IDLE;
             }
 
+            /*Jika Exca (data CAN <--- Decision dan CAN DECODER)
+             * Dinilai OFF/ sedang dalam posisi Idle/ off
+             * Maka System akan diubah state ke idle (System State = IDLE)
+             */
+
             break;
 
 
-        case SYSTEM_IDLE:
+        case SYSTEM_IDLE: //Inisiasi jika system terbaca Idle
 
-            TimerManager_Start();
+            TimerManager_Start();// Jika terindikasi Idle, maka timer akan start
 
-            system_state = SYSTEM_TIMER_RUNNING;
+            system_state = SYSTEM_TIMER_RUNNING; //System State shift ke Timer Run
 
             break;
 
 
         case SYSTEM_TIMER_RUNNING:
+
+        	/*
+        	 * Jika terindikasi bahwa
+        	 * 1. Exca melakukan pekerjaan pada saat timer running
+        	 * 2. Sinyal CAN hilang/ tidak valid
+        	 * Maka Timer Manager akan stop dan timer reset
+        	 * Reset timer dilakukan di Timer_Manager.c
+        	 *
+        	 * Jika Timer sudah habis / expired, maka
+        	 * akan dilakukan request untuk shutdown (IO Out)
+        	 */
 
             if (condition == MACHINE_WORKING)
             {
@@ -79,8 +104,8 @@ void SystemManager_Process(void)
         case SYSTEM_SHUTDOWN_REQUESTED:
 
             /*
-             * Before actually shutting down,
-             * verify everything one more time.
+             * Jika terindikasi perlu shutdown, pastikan bahwa
+             * Mesin dalam keadaan IDLE dan sinyal CAN Valid dan Sehat
              */
 
             if (condition == MACHINE_IDLE &&
