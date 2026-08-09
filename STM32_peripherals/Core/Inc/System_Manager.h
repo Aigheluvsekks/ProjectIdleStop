@@ -3,6 +3,11 @@
 
 #include <stdbool.h>
 
+/*
+ * Variabel konstan dituliskan dengan huruf Kapital Penuh
+ */
+
+
 typedef enum
 {
 	SYSTEM_DISABLED,
