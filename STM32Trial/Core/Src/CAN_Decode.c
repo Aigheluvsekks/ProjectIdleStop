@@ -22,14 +22,14 @@ static MachineData_t machine_data =
 };
 
 void CAN_DecodeMessage(
-	uinr32_t id,
+	uint32_t id,
 	uint8_t *data,
 	uint8_t dlc
 )
 {
 	switch(id)
 	{
-	case 0x11f //RPM Case
+	case 0x11F //RPM Case
 	if (dlc >= 2) //Data Byte size
 	{
 		raw_rpm=
@@ -56,4 +56,9 @@ void CAN_DecodeMessage(
   */
 
 }
+}
+
+MachineData_t CAN_GetMachineData(void)
+{
+	return machine_data;
 }
