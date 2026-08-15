@@ -11,26 +11,25 @@
  * Variabel digunakan untuk mendeteksi apakah data hasil
  */
 
-/* Replace these numbers with the actual values from your Shop Manual */
-#define RPM_MAX 4000
+#define RPM_MAX 2200
 #define RPM_MIN 0
 
-#define SWING_PRESS_MAX 350
-#define SWING_PRESS_MIN 0
+#define SWING_PRESS_MAX
+#define SWING_PRESS_MIN
 
-#define BOOMD_PRESS_MAX 350
-#define BOOMD_PRESS_MIN 0
+#define BOOMD_PRESS_MAX
+#define BOOMD_PRESS_MIN
 
-#define BOOMUP_PRESS_MAX 350
-#define BOOMUP_PRESS_MIN 0
+#define BOOMUP_PRESS_MAX
+#define BOOMUP_PRESS_MIN
 
-#define ARMDIG_PRESS_MAX 350
-#define ARMDIG_PRESS_MIN 0
+#define ARMDIG_PRESS_MAX
+#define ARMDIG_PRESS_MIN
 
-#define BUCKETDUMP_PRESS_MAX 350
-#define BUCKETDUMP_PRESS_MIN 0
+#define BUCKETDUMP_PRESS_MAX
+#define BUCKETDUMP_PRESS_MIN
 
-#define TRAVEL_PRESS_MAX 350
-#define TRAVEL_PRESS_MIN 0
+#define TRAVEL_PRESS_MAX
+#define TRAVEL_PRESS_MIN
 
 #endif
