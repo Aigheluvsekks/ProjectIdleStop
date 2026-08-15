@@ -61,7 +61,7 @@ bool CAN_Manager_ReadMessage(CAN_HandleTypeDef *hcan1, uint32_t rxFifo, CAN_Msg_
     return false; /* FIFO was empty or error */
 }
 
-void CAN_Manager_RxCallback(CAN_HandleTypeDef *hcan1) 
+void CAN_Manager_RxCallback(CAN_HandleTypeDef *hcan1)
 {
     CAN_Msg_t incomingMsg;
 
