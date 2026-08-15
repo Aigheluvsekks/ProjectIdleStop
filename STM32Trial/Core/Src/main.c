@@ -21,7 +21,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "CAN_Decode.h"
+#include "CAN_Manager.h"
+#include "Decision.h"
+#include "io_input.h"
+#include "io_output.h"
+#include "Machine_Config_Max.h"
+#include "Machine_Param.h"
+#include "System_Health.h"
+#include "System_Manager.h"
+#include "Timer_Manager.h	"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,7 +49,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan1;
+CAN_HandleTypeDef hcan;
 
 RTC_HandleTypeDef hrtc;
 
@@ -99,6 +108,55 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+ /* Initialize Application IO*/
+IO_Output_Init();
+
+/*
+   * Configure CAN acceptance filter.
+   *
+   * Target:
+   *     CAN ID = 0x11F
+   *
+   * Mask:
+   *     0x7FF = exact 11-bit Standard ID match
+   *
+   * IMPORTANT:
+   * Filter must be configured before CAN_Manager_Init()
+   * because CAN_Manager_Init() starts the CAN peripheral.
+ */
+  CAN_Manager_ConfigFilter_StdID(
+      &hcan1,
+      0,
+      0x11F,
+      0x7FF
+  );
+
+  /* Start CAN and enable CAN RX notifications */
+    CAN_Manager_Init(&hcan1);
+
+    uint32_t starrtTime = HAL_GetTick();
+
+    IO_PilotGreen_On(1);
+    IO_PilotYellow_On(1);
+    IO_PilotRed_On(1);
+    IO_CutoffRelay_On(1);
+    while((HAL_GetTick() - startTime)<3000)
+    {
+
+    }
+    IO_PilotGreen_Off(1);
+    IO_PilotYellow_Off(1);
+    IO_PilotRed_Off(1);
+    IO_CutoffRelay_Off(1);
+
+    /* Initialize system state machine */
+    SystemManager_Init();
+
+    /*
+     * SystemManager_Init() currently starts in SYSTEM_DISABLED.
+     * For the first implementation, enter monitoring mode.
+     */
+    SystemManager_SetStates(SYSTEM_MONITORING);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -108,6 +166,57 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  /*
+	   * ========================================
+	   * MAIN APPLICATION LOOP
+	   * ========================================
+	   */
+
+	  OperatingMode_t operating_mode = IO_GetOperatingMode();
+
+	  //Idle Stop System is Enabled
+
+	  if(operating_mode == IdleStop_On)
+	  {
+		  if(SystemManager_GetState() == SYSTEM_DISABLED)
+		  {
+			  SystemManager_SetStates(SYSTEM_MONITORING);
+		  }
+
+		  SystemManager_Process();
+		  IO_PilotYellow_Off(1);
+	  }
+
+	  //Idle Stop Disabled
+	  else if(operating_mode == IdleStop_Off)
+	  {
+		  Timer_Manager_Stop();
+		  IO_CutoffRelay_Off(1);
+		  SystemManager_SetStates(SYSTEM_DISABLED);
+		  IO_PilotYellow_Off(1);
+		  IO_PilotGreen_Off(1);
+		  IO_PilotRed_Off(1);
+	  }
+
+	  else if(operating_mode == Service_On)
+	  {
+		  Timer_Manager_Stop();
+		  IO_CutoffRelay_Off(1);
+		  SystemManager_SetStates(SYSTEM_DISABLED);
+		  IO_PilotYellow_On(1);
+
+	  }
+
+	  else
+	  {
+		  Timer_Manager_Stop();
+		  IO_CutoffRelay_Off(1);
+		  SystemManager_SetStates(SYSTEM_FAULT);
+		  IO_PilotGreen_On(1);
+		  IO_PilotRed_On(1);
+		  IO_PilotYellow_On(1);
+	  }
   }
   /* USER CODE END 3 */
 }
