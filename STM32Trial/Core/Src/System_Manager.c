@@ -4,20 +4,19 @@
 #include "Timer_Manager.h"
 #include "io_output.h"
 
-extern SystemState_t system_state;
 
 uint32_t shutdown_time;
 
 void SystemManager_Process(void)
 {
-    SystemHealth_t health =
-        SystemHealth_Get();
+	SystemState_t state = SystemManager_GetState();
+    SystemHealth_t health = SystemHealth_Get(state);
     /* Inisiasi variabel "health" yang memiliki tipe "SystemHealth_t" refer to
      * System_Health.h and System_Health.c
+     * Bagian ini juga digunakan untuk menyambungkan ke System_Health, agar System_Health mengetahui
+     * Apabila Engine sudah mati / belum
      */
-
     MachineCondition_t condition = Decision_GetMachineCondition();
-
     /* Inisiasi variabel "condition" yang memiliki tipe "MachineCondition_t" refer to
          * Refer to Decision.h and Decision.c
          */
@@ -30,7 +29,7 @@ void SystemManager_Process(void)
      * Sehingga waktu countdown untuk menuju mati mesin akan direset/distop
      */
 
-    if (health != SYSTEM_HEALTH_OK)
+    if (health == SYSTEM_HEALTH_OK || health == SYSTEM_HEALTH_CAN_TIMEOUT)
     {
         Timer_Manager_Stop();
 
@@ -43,6 +42,20 @@ void SystemManager_Process(void)
     switch (system_state)
     {
         case SYSTEM_MONITORING:
+        	
+        	if (condition == MACHINE_WORKING)
+        	    {
+        	        // Machine is working
+        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET); // LED ON
+        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);   // LED OFF
+        	        Timer_Manager_Stop();
+        	        system_state = SYSTEM_MONITORING;
+        	        IO_CutOffRelay_Off(1);
+        	        IO_PilotYellow_Off(1);
+        	        IO_PilotRed_Off(1);
+        	        IO_PilotGreen_Off(1);
+        	    }
+
 
             if (condition == MACHINE_IDLE)
             {
@@ -64,6 +77,8 @@ void SystemManager_Process(void)
             system_state = SYSTEM_TIMER_RUNNING; //System State shift ke Timer Run
             IO_CutoffRelay_Off(1);
             IO_PilotGreen_On(1);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
 
             break;
 
@@ -148,7 +163,10 @@ void SystemManager_Process(void)
         	{
         		IO_CutoffRelay_off(1);
         		system_state = SYSTEM_MONITORNG;
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);        	
         	}
+        	
 
             break;
 
