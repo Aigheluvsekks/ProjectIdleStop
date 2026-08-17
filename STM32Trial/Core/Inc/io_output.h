@@ -14,7 +14,7 @@ void IO_PilotGreen_Off(uint8_t state);
 void IO_PilotYellow_On(uint8_t state);
 void IO_PilotYellow_Off(uint8_t state);
 
-void IO_PillotRed_On(uint8_t state);
-void IO_PillotRed_Off(uint8_t state);
+void IO_PilotRed_On(uint8_t state);
+void IO_PilotRed_Off(uint8_t state);
 
 #endif
