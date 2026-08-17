@@ -5,12 +5,26 @@
 #include "io_output.h"
 
 
-uint32_t shutdown_time;
+static SystemState_t system_state;
+static SystemState_t system_state_health;
+static uint16_t shutdown_time;
+
+
+void SystemManager_Init(void)
+{
+    system_state = SYSTEM_MONITORING;
+    system_state_health = SYSTEM_MONITORING;
+    shutdown_time = 0;
+}
+
+SystemState_t SystemManager_GetState(void)
+{
+    return system_state;
+}
 
 void SystemManager_Process(void)
 {
-	SystemState_t state = SystemManager_GetState();
-    SystemHealth_t health = SystemHealth_Get(state);
+    SystemHealth_t health = SystemHealth_Get(system_state_health);
     /* Inisiasi variabel "health" yang memiliki tipe "SystemHealth_t" refer to
      * System_Health.h and System_Health.c
      * Bagian ini juga digunakan untuk menyambungkan ke System_Health, agar System_Health mengetahui
@@ -29,11 +43,13 @@ void SystemManager_Process(void)
      * Sehingga waktu countdown untuk menuju mati mesin akan direset/distop
      */
 
-    if (health == SYSTEM_HEALTH_OK || health == SYSTEM_HEALTH_CAN_TIMEOUT)
+    if (health == SYSTEM_HEALTH_CAN_ERROR ||
+        health == SYSTEM_HEALTH_CAN_TIMEOUT)
     {
         Timer_Manager_Stop();
 
         system_state = SYSTEM_FAULT;
+        system_state_health = SYSTEM_FAULT;
 
         return;
     }
@@ -42,24 +58,26 @@ void SystemManager_Process(void)
     switch (system_state)
     {
         case SYSTEM_MONITORING:
-        	
+
         	if (condition == MACHINE_WORKING)
         	    {
         	        // Machine is working
-        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET); // LED ON
-        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);   // LED OFF
+        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET); // LED ON
+        	        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);   // LED OFF
         	        Timer_Manager_Stop();
         	        system_state = SYSTEM_MONITORING;
-        	        IO_CutOffRelay_Off(1);
+        	        IO_CutoffRelay_Off(1);
         	        IO_PilotYellow_Off(1);
         	        IO_PilotRed_Off(1);
         	        IO_PilotGreen_Off(1);
+        	        system_state_health = SYSTEM_MONITORING;
         	    }
 
 
             if (condition == MACHINE_IDLE)
             {
                 system_state = SYSTEM_IDLE;
+                system_state_health = SYSTEM_MONITORING;
             }
 
             /*Jika Exca (data CAN <--- Decision dan CAN DECODER)
@@ -75,6 +93,7 @@ void SystemManager_Process(void)
             Timer_Manager_Start();// Jika terindikasi Idle, maka timer akan start
 
             system_state = SYSTEM_TIMER_RUNNING; //System State shift ke Timer Run
+            system_state_health = SYSTEM_MONITORING;
             IO_CutoffRelay_Off(1);
             IO_PilotGreen_On(1);
             HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
@@ -95,20 +114,24 @@ void SystemManager_Process(void)
         	 * Jika Timer sudah habis / expired, maka
         	 * akan dilakukan request untuk shutdown (IO Out)
         	 */
-        	if(Timer_Manager_Remaining() <= 500){
+        	if((Timer_Manager_GetTargetTimeMs() - Timer_Manager_GetElapsedTimeMs()) <= 500){
         		IO_PilotRed_On(1);
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
         	}
         	else
         	{
         		IO_PilotRed_Off(1);
+        		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
         	}
             if (condition == MACHINE_WORKING)
             {
                 Timer_Manager_Stop();
 
                 system_state = SYSTEM_MONITORING;
+                system_state_health = SYSTEM_MONITORING;
 
-                IO_CutOffRelay_Off(1);
+                IO_CutoffRelay_Off(1);
                 IO_PilotYellow_Off(1);
                 IO_PilotRed_Off(1);
                 IO_PilotGreen_Off(1);
@@ -117,17 +140,18 @@ void SystemManager_Process(void)
             else if (condition == MACHINE_UNKNOWN)
             {
                 Timer_Manager_Stop();
-                IO_CutOffRelay_Off(1);
+                IO_CutoffRelay_Off(1);
                 IO_PilotYellow_Off(1);
                 IO_PilotRed_Off(1);
                 IO_PilotGreen_Off(1);
-
                 system_state = SYSTEM_MONITORING;
+                system_state_health = SYSTEM_MONITORING;
             }
 
-            else if (Timer_Manager_Expired())
+            else if (Timer_Manager_IsExpired() == 1)
             {
                 system_state = SYSTEM_SHUTDOWN_REQUESTED;
+                system_state_health = SYSTEM_MONITORING;
             }
 
             break;
@@ -143,15 +167,19 @@ void SystemManager_Process(void)
             if (condition == MACHINE_IDLE &&
                 health == SYSTEM_HEALTH_OK)
             {
-                IO_CutOffRelay_On(1);
+                IO_CutoffRelay_On(1);
 
                 shutdown_time = HAL_GetTick();
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
 
                 system_state = SYSTEM_SHUTDOWN_ACTIVE;
+                system_state_health = SYSTEM_SHUTDOWN_ACTIVE;
             }
             else
             {
-                system_state = SYSTEM_MONITORING;
+            	system_state = SYSTEM_MONITORING;
+            	system_state_health = SYSTEM_MONITORING;
             }
 
             break;
@@ -159,14 +187,13 @@ void SystemManager_Process(void)
 
         case SYSTEM_SHUTDOWN_ACTIVE:
 
-        	if((Hal_GetTick() - shutdown_time) >= 1500)
+        	if((HAL_GetTick() - shutdown_time) >= 800)
         	{
-        		IO_CutoffRelay_off(1);
-        		system_state = SYSTEM_MONITORNG;
-                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);        	
+        		IO_CutoffRelay_Off(1);
+        		system_state = SYSTEM_MONITORING;
+        		system_state_health = SYSTEM_SHUTDOWN_ACTIVE;
         	}
-        	
+
 
             break;
 

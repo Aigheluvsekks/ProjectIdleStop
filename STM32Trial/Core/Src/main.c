@@ -30,7 +30,7 @@
 #include "Machine_Param.h"
 #include "System_Health.h"
 #include "System_Manager.h"
-#include "Timer_Manager.h	"
+#include "Timer_Manager.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +49,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan;
+CAN_HandleTypeDef hcan1;
 
 RTC_HandleTypeDef hrtc;
 
@@ -134,7 +134,7 @@ IO_Output_Init();
   /* Start CAN and enable CAN RX notifications */
     CAN_Manager_Init(&hcan1);
 
-    uint32_t starrtTime = HAL_GetTick();
+    uint32_t startTime = HAL_GetTick();
 
     IO_PilotGreen_On(1);
     IO_PilotYellow_On(1);
@@ -156,7 +156,7 @@ IO_Output_Init();
      * SystemManager_Init() currently starts in SYSTEM_DISABLED.
      * For the first implementation, enter monitoring mode.
      */
-    SystemManager_SetStates(SYSTEM_MONITORING);
+    SystemManager_SetState(SYSTEM_MONITORING);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -181,7 +181,7 @@ IO_Output_Init();
 	  {
 		  if(SystemManager_GetState() == SYSTEM_DISABLED)
 		  {
-			  SystemManager_SetStates(SYSTEM_MONITORING);
+			  SystemManager_SetState(SYSTEM_MONITORING);
 		  }
 
 		  SystemManager_Process();
@@ -193,7 +193,7 @@ IO_Output_Init();
 	  {
 		  Timer_Manager_Stop();
 		  IO_CutoffRelay_Off(1);
-		  SystemManager_SetStates(SYSTEM_DISABLED);
+		  SystemManager_SetState(SYSTEM_DISABLED);
 		  IO_PilotYellow_Off(1);
 		  IO_PilotGreen_Off(1);
 		  IO_PilotRed_Off(1);
@@ -203,7 +203,7 @@ IO_Output_Init();
 	  {
 		  Timer_Manager_Stop();
 		  IO_CutoffRelay_Off(1);
-		  SystemManager_SetStates(SYSTEM_DISABLED);
+		  SystemManager_SetState(SYSTEM_DISABLED);
 		  IO_PilotYellow_On(1);
 
 	  }
@@ -212,7 +212,7 @@ IO_Output_Init();
 	  {
 		  Timer_Manager_Stop();
 		  IO_CutoffRelay_Off(1);
-		  SystemManager_SetStates(SYSTEM_FAULT);
+		  SystemManager_SetState(SYSTEM_FAULT);
 		  IO_PilotGreen_On(1);
 		  IO_PilotRed_On(1);
 		  IO_PilotYellow_On(1);
@@ -391,6 +391,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
                           |GPIO_PIN_6, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+
   /*Configure GPIO pins : PE2 PE3 PE4 PE5
                            PE6 */
   GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
@@ -399,6 +402,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA6 PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD6 PD7 */
   GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;

@@ -10,7 +10,7 @@ void IO_CutoffRelay_On(uint8_t state) //Cutoff On (Engine off)
 {
         HAL_GPIO_WritePin(
             GPIOE,
-            GPIO_PIN_7,
+            GPIO_PIN_6,
             GPIO_PIN_SET
         );
     }
@@ -19,11 +19,10 @@ void IO_CutoffRelay_Off(uint8_t state) // Cutoff Off (Engine On)
 {
         HAL_GPIO_WritePin(
             GPIOE,
-            GPIO_PIN_7,
+            GPIO_PIN_6,
             GPIO_PIN_RESET
         );
     }
-
 
 void IO_PilotGreen_On(uint8_t state) //Pilot Green LED ON
 {

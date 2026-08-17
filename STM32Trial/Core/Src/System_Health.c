@@ -1,6 +1,7 @@
 #include "System_Health.h"
 #include "CAN_Manager.h"
 #include "stm32f4xx_hal.h"
+#include "System_Manager.h"
 
 /*
  * Bagian kode ini digunakan untuk monitoring kesehatan / cacat dari sistem CAN Exca
@@ -14,7 +15,8 @@
  * data dapat dikategorikan sebagai tidak sehat / faulty/ error
  */
 
-SystemHealth_t SystemHealth_Get(SystemState_t state)
+
+SystemHealth_t SystemHealth_Get(SystemState_t system_state_health)
 {
 	uint32_t lastRPM = CAN_GetLastRPMUpdate();
 	/* uint32_t lastSWINGL = CAN_GetLastSwingLUpdate();
@@ -27,7 +29,8 @@ SystemHealth_t SystemHealth_Get(SystemState_t state)
 	uint32_t lastTRAVELLF = CAN_GetTravelLFUpdate();
 	uint32_t lastTRAVELRR = CAN_GetTravelRRUpdate();
 	uint32_t lastTRAVELRF = CAN_GetTravelRFUpdate();
-	/* Remove /*  to use other appliance / systems
+
+	Remove comment line to add other variables aside from RPM
 	*/
 	uint32_t now = HAL_GetTick();
 
@@ -35,18 +38,17 @@ SystemHealth_t SystemHealth_Get(SystemState_t state)
 
 	if(!CAN_IsHealthy())
 	{
-		if (SysState == SYSTEM_SHUTDOWN_ACTIVE)
+		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
 		    {
 		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		    }
 
 		    return SYSTEM_HEALTH_CAN_ERROR;
 		}
-	}
 
 	if((now-lastRPM)>RPM_TIMEOUT_MS)
 	{
-		if (SysState == SYSTEM_SHUTDOWN_ACTIVE)
+		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
 		    {
 		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		    }

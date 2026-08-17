@@ -1,0 +1,86 @@
+/**
+  ******************************************************************************
+  * @file    Timer_Manager.c
+  * @brief   Timer & Countdown Manager Implementation
+  ******************************************************************************
+  */
+
+#include "Timer_Manager.h"
+
+/* Tambahkan definisi lokal jika belum ada di header */
+#ifndef TIME_INTERVAL_1
+#define TIME_INTERVAL_1   0
+#define TIME_INTERVAL_2   1
+#define TIME_INTERVAL_3   2
+#endif
+
+/* --- Private Variables --- */
+static uint32_t currentElapsedTimeMs = 0;
+static uint32_t targetCountdownTimeMs = 0;
+static uint32_t startTimeTick = 0;
+static bool     isTimerRunning = false;
+
+/* --- Function Implementations --- */
+
+void Timer_Manager_Start(void) {
+    /* 1. Mengetahui waktu countdown yang harus dieksekusi */
+    OperatingTime_t opTime = IO_GetOperatingTime();
+
+    /* 2. Menentukan target millisec berdasarkan interval time1, time2, time3 */
+    switch ((uint8_t)opTime) {
+        case TIME_INTERVAL_1:
+            targetCountdownTimeMs = (uint32_t)TIMER_MINUTES_TIME1 * 60 * 1000;
+            break;
+        case TIME_INTERVAL_2:
+            targetCountdownTimeMs = (uint32_t)TIMER_MINUTES_TIME2 * 60 * 1000;
+            break;
+        case TIME_INTERVAL_3:
+            targetCountdownTimeMs = (uint32_t)TIMER_MINUTES_TIME3 * 60 * 1000;
+            break;
+        default:
+            targetCountdownTimeMs = 0;
+            break;
+    }
+
+    /* 3. Ngestart Timer */
+    if (targetCountdownTimeMs > 0) {
+        startTimeTick = HAL_GetTick();
+        currentElapsedTimeMs = 0;
+        isTimerRunning = true;
+    }
+}
+
+void Timer_Manager_Stop(void) {
+    /* 4. Ngestop timer dan reset timer */
+    isTimerRunning = false;
+    startTimeTick = 0;
+    currentElapsedTimeMs = 0;
+    targetCountdownTimeMs = 0;
+}
+
+uint32_t Timer_Manager_GetElapsedTimeMs(void) {
+    /* 5. Ngereport elapsed time */
+    if (isTimerRunning) {
+        currentElapsedTimeMs = HAL_GetTick() - startTimeTick;
+    }
+    return currentElapsedTimeMs;
+}
+
+uint32_t Timer_Manager_GetTargetTimeMs(void) {
+    /* 6. Ngereport target time */
+    return targetCountdownTimeMs;
+}
+
+bool Timer_Manager_IsExpired(void) {
+    if (!isTimerRunning) {
+        return false;
+    }
+
+    /* Periksa apakah elapsed time sudah mencapai atau melebihi target time */
+    if (Timer_Manager_GetElapsedTimeMs() >= targetCountdownTimeMs) {
+        isTimerRunning = false;
+        return true;
+    }
+
+    return false;
+}

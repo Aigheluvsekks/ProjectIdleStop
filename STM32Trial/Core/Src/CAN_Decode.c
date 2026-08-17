@@ -2,7 +2,8 @@
 
 static MachineData_t machine_data =
 {
-		.rpm = 0
+		.rpm = 0,
+		.raw_rpm = 0
 
 		// erase the /* */ to connect or decode other var. or systems
 	/*.swingR_Press = 0,
@@ -29,15 +30,13 @@ void CAN_DecodeMessage(
 {
 	switch(id)
 	{
-	case 0x11F //RPM Case
+	case 0x11F: //RPM Case
 	if (dlc >= 2) //Data Byte size
 	{
-		raw_rpm=
-				((uint16_t)data[0] << 8) | //Unfinished
+	machine_data.raw_rpm = ((uint16_t)data[0] << 8) | //Unfinished
 				data[1];
 
-		machine_data.rpm =
-				(raw_rpm*RPM_FACTOR) + RPM_OFFSET;
+		machine_data.rpm = (machine_data.raw_rpm*RPM_FACTOR) + RPM_OFFSET;
 	}
 
 	break;

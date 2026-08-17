@@ -3,7 +3,7 @@
 #include "Machine_Config_Max.h"
 #include "CAN_Decode.h"
 
-void DataValidity_Check(MachineData_t *data)
+DataValidity_t DataValidity_Check(MachineData_t *data)
 {
     data->rpm_Valid = (data->rpm >= RPM_MIN &&
     		data->rpm <= RPM_MAX);
