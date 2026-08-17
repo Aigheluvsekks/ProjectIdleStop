@@ -14,31 +14,46 @@
  * data dapat dikategorikan sebagai tidak sehat / faulty/ error
  */
 
-SystemHealth_t SystemHealth_Get(void)
+SystemHealth_t SystemHealth_Get(SystemState_t state)
 {
 	uint32_t lastRPM = CAN_GetLastRPMUpdate();
-	uint32_t lastSWINGL = CAN_GetLastSwingLUpdate();
+	/* uint32_t lastSWINGL = CAN_GetLastSwingLUpdate();
 	uint32_t lastSWINGR = CAN_GetLastSwingRUpdate();
 	uint32_t lastBOOMD = CAN_GetLastBoomDUpdate();
 	uint32_t lastBOOMU = CAN_GetLastBoomUUpdate();
 	uint32_t lastARMDIG = CAN_GetLastArmDigUpdate();
-	uint32_t lastBUCKETDUMP = CAN_GetLastBucketDumpUpdate();
-	uint32_t lastTRAVELLR   = CAN_GetLastTravelLRUpdate();
-	uint32_t lastTRAVELLF   = CAN_GetLastTravelLFUpdate();
-	uint32_t lastTRAVELRR   = CAN_GetLastTravelRRUpdate();
-	uint32_t lastTRAVELRF   = CAN_GetLastTravelRFUpdate();
+	uint32_t lastBUCKETDUMP = CAN_GetBucketDumpUpdate();
+	uint32_t lastTRAVELLR = CAN_GetTravelLRUpdate();
+	uint32_t lastTRAVELLF = CAN_GetTravelLFUpdate();
+	uint32_t lastTRAVELRR = CAN_GetTravelRRUpdate();
+	uint32_t lastTRAVELRF = CAN_GetTravelRFUpdate();
+	/* Remove /*  to use other appliance / systems
+	*/
 	uint32_t now = HAL_GetTick();
+
 
 
 	if(!CAN_IsHealthy())
 	{
-		return SYSTEM_HEALTH_CAN_ERROR;
+		if (SysState == SYSTEM_SHUTDOWN_ACTIVE)
+		    {
+		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
+		    }
+
+		    return SYSTEM_HEALTH_CAN_ERROR;
+		}
 	}
 
 	if((now-lastRPM)>RPM_TIMEOUT_MS)
 	{
-		return SYSTEM_HEALTH_CAN_TIMEOUT;
+		if (SysState == SYSTEM_SHUTDOWN_ACTIVE)
+		    {
+		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
+		    }
+
+		    return SYSTEM_HEALTH_CAN_TIMEOUT;
 	}
+	/*
 	if((now-lastSWINGL)>SWINGL_PRESS_TIMEOUT_MS)
 	{
 		return SYSTEM_HEALTH_CAN_TIMEOUT;
@@ -79,5 +94,6 @@ SystemHealth_t SystemHealth_Get(void)
 	{
 			return SYSTEM_HEALTH_CAN_TIMEOUT;
 	}
+	*/
 	return SYSTEM_HEALTH_OK;
 }
