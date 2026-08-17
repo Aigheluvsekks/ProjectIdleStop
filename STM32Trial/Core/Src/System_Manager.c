@@ -7,8 +7,12 @@
 
 static SystemState_t system_state;
 static SystemState_t system_state_health;
-static uint16_t shutdown_time;
+static uint32_t shutdown_time;
 
+void SystemManager_SetState(SystemState_t state)
+{
+    system_state = state;
+}
 
 void SystemManager_Init(void)
 {
