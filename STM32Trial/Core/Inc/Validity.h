@@ -1,10 +1,18 @@
-#ifndef VALIDITY_H
-#define VALIDITY_H
+#ifndef DATA_VALIDITY_H
+#define DATA_VALIDITY_H
 
-/* 1. Pull the ONE true struct definition from CAN_Decode.h */
+#include "CAN_Manager.h"
 #include "CAN_Decode.h"
+#include "Machine_Data.h"
 
-/* 2. The exact function prototype matching your .c file */
-void DataValidity_Check(MachineData_t *data);
+typedef enum
+{
+	DATA_VALID = 1,
+	DATA_INVALID = 0
+}DataValidity_t;
+
+uint16_t rpm_valid;
+
+DataValidity_t DataValidity_Check(MachineData_t *data);
 
 #endif

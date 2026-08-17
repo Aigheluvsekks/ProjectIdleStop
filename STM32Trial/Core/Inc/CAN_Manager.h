@@ -33,7 +33,7 @@ typedef struct {
 /**
  * @brief Starts the CAN peripheral and enables RX interrupts.
  */
-void CAN_Manager_Init(CAN_HandleTypeDef *hcan);
+void CAN_Manager_Init(CAN_HandleTypeDef *hcan1);
 
 /**
  * @brief Configures a 32-bit hardware mask filter for Standard IDs (11-bit).
@@ -41,18 +41,18 @@ void CAN_Manager_Init(CAN_HandleTypeDef *hcan);
  * @param targetID   The specific ID you want to allow (e.g., 0x100)
  * @param mask       The mask (0x7FF requires exact ID match, 0x000 lets all pass)
  */
-void CAN_Manager_ConfigFilter_StdID(CAN_HandleTypeDef *hcan, uint32_t filterBank, uint32_t targetID, uint32_t mask);
+void CAN_Manager_ConfigFilter_StdID(CAN_HandleTypeDef *hcan1, uint32_t filterBank, uint32_t targetID, uint32_t mask);
 
 /**
  * @brief Reads a message directly from the hardware FIFO.
  * @return true if a message was successfully read, false if FIFO is empty.
  */
-bool CAN_Manager_ReadMessage(CAN_HandleTypeDef *hcan, uint32_t rxFifo, CAN_Msg_t *pMsg);
+bool CAN_Manager_ReadMessage(CAN_HandleTypeDef *hcan1, uint32_t rxFifo, CAN_Msg_t *pMsg);
 
 /**
  * @brief Callback function to be placed inside HAL_CAN_RxFifo0MsgPendingCallback.
  */
-void CAN_Manager_RxCallback(CAN_HandleTypeDef *hcan);
+void CAN_Manager_RxCallback(CAN_HandleTypeDef *hcan1);
 
 #ifdef __cplusplus
 }
@@ -60,6 +60,9 @@ void CAN_Manager_RxCallback(CAN_HandleTypeDef *hcan);
 
 /* Put these inside CAN_Manager.h */
 uint32_t CAN_GetLastRPMUpdate(void);
+
+/*
+ * Other CAN ADRESS, use for development purposes
 uint32_t CAN_GetLastSwingLUpdate(void);
 uint32_t CAN_GetLastSwingRUpdate(void);
 uint32_t CAN_GetLastBoomDUpdate(void);
@@ -70,6 +73,7 @@ uint32_t CAN_GetLastTravelLRUpdate(void);
 uint32_t CAN_GetLastTravelLFUpdate(void);
 uint32_t CAN_GetLastTravelRRUpdate(void);
 uint32_t CAN_GetLastTravelRFUpdate(void);
+*/
 
 bool CAN_IsHealthy(void);
 #endif /* CAN_MANAGER_H */

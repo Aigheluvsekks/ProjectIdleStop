@@ -7,7 +7,7 @@ typedef enum
 {
 	MACHINE_WORKING,
 	MACHINE_IDLE,
-	MACHINE_UNKNOWN,
+	MACHINE_UNKNOWN
 } MachineCondition_t;
 
 MachineCondition_t Decision_GetMachineCondition(void);

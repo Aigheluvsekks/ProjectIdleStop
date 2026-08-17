@@ -2,10 +2,13 @@
 #define SYSTEM_MANAGER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /*
  * Variabel konstan dituliskan dengan huruf Kapital Penuh
  */
+
+
 
 
 typedef enum

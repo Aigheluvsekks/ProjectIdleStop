@@ -14,7 +14,7 @@
  * karena parameter digunakan untuk code lain, terima kasih.
  */
 
-#define RPM_WORK_THRESH 1200
+#define RPM_WORK_THRESH 1100
 /* ((iN CASE SWING R DAN SWING L BEDA))
  * #define SWINGL_PRESS_THRESH
  * #define SWINGR_PRESS_THRESH
