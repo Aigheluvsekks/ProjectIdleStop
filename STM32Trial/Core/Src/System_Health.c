@@ -15,6 +15,9 @@
  * data dapat dikategorikan sebagai tidak sehat / faulty/ error
  */
 
+volatile SystemHealth_t debug_last_health;
+volatile uint32_t debug_rpm_age;
+volatile uint8_t debug_can_healthy;
 
 SystemHealth_t SystemHealth_Get(SystemState_t system_state_health)
 {
@@ -34,27 +37,34 @@ SystemHealth_t SystemHealth_Get(SystemState_t system_state_health)
 	*/
 	uint32_t now = HAL_GetTick();
 
+	debug_can_healthy = CAN_IsHealthy();
+	debug_rpm_age = now - lastRPM;
 
 
-	if(!CAN_IsHealthy())
+	if(!debug_can_healthy)
 	{
 		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
 		    {
+				debug_last_health = SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		    }
 
 		    return SYSTEM_HEALTH_CAN_ERROR;
 		}
 
-	if((now-lastRPM)>RPM_TIMEOUT_MS)
+	if(debug_rpm_age > RPM_TIMEOUT_MS)
 	{
 		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
 		    {
+				debug_last_health = SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
 		    }
 
+			debug_last_health = SYSTEM_HEALTH_CAN_TIMEOUT;
 		    return SYSTEM_HEALTH_CAN_TIMEOUT;
 	}
+	debug_last_health = SYSTEM_HEALTH_OK;
+	return SYSTEM_HEALTH_OK;
 	/*
 	if((now-lastSWINGL)>SWINGL_PRESS_TIMEOUT_MS)
 	{

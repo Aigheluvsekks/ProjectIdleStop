@@ -6,19 +6,20 @@
   */
 
 #include "Timer_Manager.h"
+#include "io_input.h"
 
-/* Tambahkan definisi lokal jika belum ada di header */
-#ifndef TIME_INTERVAL_1
-#define TIME_INTERVAL_1   0
-#define TIME_INTERVAL_2   1
-#define TIME_INTERVAL_3   2
-#endif
 
 /* --- Private Variables --- */
+
 static uint32_t currentElapsedTimeMs = 0;
 static uint32_t targetCountdownTimeMs = 0;
 static uint32_t startTimeTick = 0;
 static bool     isTimerRunning = false;
+
+
+/* Debug */
+volatile uint32_t debug_timer_remaining_ms = 0;
+volatile uint32_t debug_timer_remaining_s = 0;
 
 /* --- Function Implementations --- */
 
@@ -58,11 +59,29 @@ void Timer_Manager_Stop(void) {
     targetCountdownTimeMs = 0;
 }
 
-uint32_t Timer_Manager_GetElapsedTimeMs(void) {
-    /* 5. Ngereport elapsed time */
-    if (isTimerRunning) {
+uint32_t Timer_Manager_GetElapsedTimeMs(void)
+{
+    if (isTimerRunning)
+    {
         currentElapsedTimeMs = HAL_GetTick() - startTimeTick;
+
+        if (currentElapsedTimeMs < targetCountdownTimeMs)
+        {
+            debug_timer_remaining_ms =
+                targetCountdownTimeMs - currentElapsedTimeMs;
+            debug_timer_remaining_s =
+                debug_timer_remaining_ms / 1000;
+        }
+        else
+        {
+            debug_timer_remaining_ms = 0;
+        }
     }
+    else
+    {
+        debug_timer_remaining_ms = 0;
+    }
+
     return currentElapsedTimeMs;
 }
 

@@ -1,4 +1,13 @@
 #include "CAN_Decode.h"
+#include "CAN_Manager.h"
+
+
+uint32_t BE;
+uint32_t RPMA;
+uint32_t RPMB;
+uint32_t BE_RPM;
+
+
 
 static MachineData_t machine_data =
 {
@@ -33,10 +42,19 @@ void CAN_DecodeMessage(
 	case 0x11F: //RPM Case
 	if (dlc >= 2) //Data Byte size
 	{
-	machine_data.raw_rpm = ((uint16_t)data[0] << 8) | //Unfinished
-				data[1];
+		RPMA =  CAN_RX_Debug.Data[0];
+		RPMB =  CAN_RX_Debug.Data[1];
 
-		machine_data.rpm = (machine_data.raw_rpm*RPM_FACTOR) + RPM_OFFSET;
+		// Big Endian Init
+		BE_RPM = 256 * RPMA + RPMB;
+
+		machine_data.raw_rpm = BE_RPM;
+
+		machine_data.rpm =
+		    (BE_RPM * RPM_FACTOR) + RPM_OFFSET;
+
+		 /* RPM data successfully received and decoded */
+		machine_data.rpm_Valid = DATA_VALID;
 	}
 
 	break;
@@ -61,3 +79,5 @@ MachineData_t CAN_GetMachineData(void)
 {
 	return machine_data;
 }
+
+
