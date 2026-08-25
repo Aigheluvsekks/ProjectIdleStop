@@ -26,6 +26,8 @@ static uint32_t workingStartTick = 0;
 static bool idleQualificationActive = false;
 static bool workingQualificationActive = false;
 
+static bool workDone = false;
+
 
 /* ============================================================
  * DEBUG VARIABLES
@@ -115,6 +117,8 @@ MachineCondition_t Decision_GetMachineCondition(void)
         {
             confirmedCondition = MACHINE_WORKING;
 
+            workDone = true;
+
             workingQualificationActive = false;
             workingStartTick = 0;
 
@@ -188,4 +192,9 @@ MachineCondition_t Decision_GetMachineCondition(void)
 
         return confirmedCondition;
     }
+}
+
+bool Decision_HasWorkBeenDone(void)
+{
+	return workDone;
 }
