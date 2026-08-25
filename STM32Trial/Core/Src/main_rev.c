@@ -145,6 +145,8 @@ int main(void)
 
         /* USER CODE END 2 */
 
+
+
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
         while (1)
@@ -296,6 +298,9 @@ int main(void)
             IO_CutoffRelay_Off(1);
             SystemManager_SetState(SYSTEM_DISABLED);
             IO_PilotYellow_On(1);
+
+            OperatingTime_t serviceTime = IO_GetOperatingTime();
+            Timer_Manager_SetOperatingTime(serviceTime);
         }
 
         /* --------------------------------------------------------------------
