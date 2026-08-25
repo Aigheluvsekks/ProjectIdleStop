@@ -31,8 +31,6 @@ UniversalTelegramBot bot(BOT_TOKEN, client);
 // ============================================================
 
 // UART connected to STM32
-// Change these pins to match your actual wiring.
-
 #define STM32_RX_PIN 16
 #define STM32_TX_PIN 17
 
@@ -250,19 +248,23 @@ void processSTM32Message(String msg)
 
 
     // ========================================================
-    // OPERATING MODE EVENT
-    // ========================================================
+    // AUTOMATIC OPERATING MODE EVENTS
     //
-    // STM32 sends:
+    // These are NOT Telegram commands.
+    //
+    // STM32 sends them automatically whenever the
+    // physical knob changes position:
     //
     // EVENT:MODE_IDLE_STOP
     // EVENT:MODE_IDLE_OFF
     // EVENT:MODE_SERVICE
     // EVENT:MODE_INVALID
-    //
-    // These indicate that the physical operating-mode
-    // selector/knob has changed position.
     // ========================================================
+
+
+    // --------------------------------------------------------
+    // KNOB -> IDLE STOP
+    // --------------------------------------------------------
 
     if (msg == "EVENT:MODE_IDLE_STOP")
     {
@@ -270,7 +272,7 @@ void processSTM32Message(String msg)
             "IDLE STOP ACTIVE";
 
         Serial.println(
-            "Operating mode: IDLE STOP ACTIVE."
+            "Operating mode changed: IDLE STOP ACTIVE."
         );
 
         if (isInternetConnected)
@@ -288,13 +290,17 @@ void processSTM32Message(String msg)
     }
 
 
+    // --------------------------------------------------------
+    // KNOB -> IDLE STOP OFF
+    // --------------------------------------------------------
+
     if (msg == "EVENT:MODE_IDLE_OFF")
     {
         currentOperatingMode =
             "IDLE STOP OFF";
 
         Serial.println(
-            "Operating mode: IDLE STOP OFF."
+            "Operating mode changed: IDLE STOP OFF."
         );
 
         if (isInternetConnected)
@@ -312,13 +318,17 @@ void processSTM32Message(String msg)
     }
 
 
+    // --------------------------------------------------------
+    // KNOB -> SERVICE
+    // --------------------------------------------------------
+
     if (msg == "EVENT:MODE_SERVICE")
     {
         currentOperatingMode =
             "SERVICE";
 
         Serial.println(
-            "Operating mode: SERVICE."
+            "Operating mode changed: SERVICE."
         );
 
         if (isInternetConnected)
@@ -336,13 +346,17 @@ void processSTM32Message(String msg)
     }
 
 
+    // --------------------------------------------------------
+    // KNOB -> INVALID
+    // --------------------------------------------------------
+
     if (msg == "EVENT:MODE_INVALID")
     {
         currentOperatingMode =
             "INVALID";
 
         Serial.println(
-            "Operating mode: INVALID."
+            "Operating mode changed: INVALID."
         );
 
         if (isInternetConnected)
@@ -362,13 +376,6 @@ void processSTM32Message(String msg)
 
     // ========================================================
     // STATUS RESPONSE
-    // ========================================================
-    //
-    // STM32 sends:
-    //
-    // STATUS:1800
-    //
-    // RPM only.
     // ========================================================
 
     if (msg.startsWith("STATUS:"))
@@ -399,15 +406,6 @@ void processSTM32Message(String msg)
 
     // ========================================================
     // IDLE STATISTICS
-    // ========================================================
-    //
-    // STM32 sends:
-    //
-    // IDLESTAT:work,current_idle,total_idle,idle_saved
-    //
-    // Example:
-    //
-    // IDLESTAT:3720,15,1280,0
     // ========================================================
 
     if (msg.startsWith("IDLESTAT:"))
@@ -784,6 +782,10 @@ void handleTelegramCommands(
 
         // ====================================================
         // /mode
+        //
+        // This is ONLY a manual query.
+        //
+        // Automatic knob notifications do NOT use this.
         // ====================================================
 
         if (text == "/mode")
@@ -1079,6 +1081,11 @@ void loop()
 
     // --------------------------------------------------------
     // Read STM32 UART
+    //
+    // THIS IS WHAT MAKES THE KNOB NOTIFICATION AUTOMATIC.
+    //
+    // STM32 can send EVENT:MODE_* at any time.
+    // No Telegram command is required.
     // --------------------------------------------------------
 
     readSTM32Serial();
@@ -1092,7 +1099,7 @@ void loop()
 
 
     // --------------------------------------------------------
-    // Telegram
+    // Telegram commands
     // --------------------------------------------------------
 
     checkTelegram();
