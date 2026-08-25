@@ -145,7 +145,7 @@ int main(void)
 
         /* USER CODE END 2 */
 
-
+        OperatingMode_t prev_mode = OpMode_Invalid;
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
@@ -154,7 +154,6 @@ int main(void)
             /* ============================================================
              * UPDATE IDLE METRICS
              * ============================================================ */
-
             IdleMetrics_Update();
 
 
@@ -169,17 +168,16 @@ int main(void)
                 /* --------------------------------------------------------
                  * Heartbeat Ping
                  * -------------------------------------------------------- */
-
                 if (strcmp(espRxBuffer, "!") == 0)
                 {
-                    ESP32_Link_Transmit(&hesp32, "EVENT:ACK\n");
+                    ESP32_Link_Transmit(&hesp32,
+                                        "EVENT:ACK\n");
                 }
 
 
                 /* --------------------------------------------------------
                  * Status Request -> Send RPM
                  * -------------------------------------------------------- */
-
                 else if (strcmp(espRxBuffer, "?") == 0)
                 {
                     char msg[48];
@@ -195,14 +193,14 @@ int main(void)
                              "STATUS:%lu\n",
                              (unsigned long)current_rpm);
 
-                    ESP32_Link_Transmit(&hesp32, msg);
+                    ESP32_Link_Transmit(&hesp32,
+                                        msg);
                 }
 
 
                 /* --------------------------------------------------------
                  * Idle Metrics Request
                  * -------------------------------------------------------- */
-
                 else if (strcmp(espRxBuffer, "#") == 0)
                 {
                     char msg[64];
@@ -227,34 +225,92 @@ int main(void)
                              (unsigned long)tot_idle,
                              (unsigned long)idle_saved);
 
-                    ESP32_Link_Transmit(&hesp32, msg);
+                    ESP32_Link_Transmit(&hesp32,
+                                        msg);
                 }
 
 
                 /* --------------------------------------------------------
                  * History Request
                  * -------------------------------------------------------- */
-
                 else if (strcmp(espRxBuffer, "*") == 0)
                 {
                     /*
                      * History logging has not been implemented yet.
                      * Do not send fake historical data.
                      */
-
-                    ESP32_Link_Transmit(&hesp32, "LOG_EMPTY\n");
+                    ESP32_Link_Transmit(&hesp32,
+                                        "LOG_EMPTY\n");
                 }
-            }        /* --------------------------------------------------------------------
-         * Trigger Idle-Stop Event when Relay/Cutoff fires
-         * -------------------------------------------------------------------- */
-        bool current_cutoff_state = (SystemManager_GetState() == SYSTEM_FAULT);
+            }
 
-        if (current_cutoff_state && !prev_cutoff_state)
-        {
-            // Inform ESP32 Telegram Bot immediately
-            ESP32_Link_Transmit(&hesp32, "EVENT:IDLE_STOP\n");
-        }
-        prev_cutoff_state = current_cutoff_state;
+
+            /* ============================================================
+             * OPERATING MODE MONITOR
+             *
+             * Detects changes in the physical operating-mode knob.
+             *
+             * IdleStop_On  -> Idle Stop Active
+             * IdleStop_Off -> Idle Stop Off
+             * Service_On   -> Service Mode
+             * ============================================================ */
+
+            OperatingMode_t current_mode =
+                IO_GetOperatingMode();
+
+            if (current_mode != prev_mode)
+            {
+                switch (current_mode)
+                {
+                    /* ----------------------------------------------------
+                     * IDLE STOP ACTIVE
+                     * ---------------------------------------------------- */
+                    case IdleStop_On:
+
+                        ESP32_Link_Transmit(&hesp32,
+                                            "EVENT:MODE_IDLE_STOP\n");
+
+                        break;
+
+
+                    /* ----------------------------------------------------
+                     * IDLE STOP OFF
+                     * ---------------------------------------------------- */
+                    case IdleStop_Off:
+
+                        ESP32_Link_Transmit(&hesp32,
+                                            "EVENT:MODE_IDLE_OFF\n");
+
+                        break;
+
+
+                    /* ----------------------------------------------------
+                     * SERVICE MODE
+                     * ---------------------------------------------------- */
+                    case Service_On:
+
+                        ESP32_Link_Transmit(&hesp32,
+                                            "EVENT:MODE_SERVICE\n");
+
+                        break;
+
+
+                    /* ----------------------------------------------------
+                     * INVALID MODE
+                     * ---------------------------------------------------- */
+                    case OpMode_Invalid:
+
+                    default:
+
+                        ESP32_Link_Transmit(&hesp32,
+                                            "EVENT:MODE_INVALID\n");
+
+                        break;
+                }
+
+                /* Store the new mode */
+                prev_mode = current_mode;
+            }
 
 
         /* ====================================================================
