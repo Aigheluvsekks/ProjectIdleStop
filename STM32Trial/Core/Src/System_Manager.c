@@ -175,7 +175,7 @@ void SystemManager_Process(void)
                 IO_CutoffRelay_Off(1);
                 IO_PilotYellow_Off(1);
                 IO_PilotRed_Off(1);
-                IO_PilotGreen_Off(1);
+                IO_PilotGreen_On(1);
 
                 system_state_health = SYSTEM_MONITORING;
             }
@@ -184,9 +184,23 @@ void SystemManager_Process(void)
             {
                 /*
                  * Machine detected idle.
+                 *
+                 *  Idle-stop is only allowed after the machine
+                 *  has previously entered MACHINE_WORKING
                  */
-                system_state = SYSTEM_IDLE;
 
+            	if (Decision_HasWorkBeenDone())
+            	{
+            		system_state = SYSTEM_IDLE;
+            	}
+
+            	else
+            	{
+            		/* Engine may be idle due to startup procedure
+            		 * Idle stop count down not started yet
+            		 */
+            		system_state = SYSTEM_MONITORING;
+            	}
                 system_state_health = SYSTEM_MONITORING;
             }
 
@@ -247,6 +261,8 @@ void SystemManager_Process(void)
                  Timer_Manager_GetElapsedTimeMs()) <= 5000)
             {
                 IO_PilotRed_On(1);
+                IO_PilotYellow_Off(1);
+                IO_PilotGreen_Off(1);
 
                 HAL_GPIO_WritePin(
                     GPIOA,
@@ -257,7 +273,6 @@ void SystemManager_Process(void)
             else
             {
                 IO_PilotRed_Off(1);
-
                 HAL_GPIO_WritePin(
                     GPIOA,
                     GPIO_PIN_7,
@@ -297,7 +312,7 @@ void SystemManager_Process(void)
 
                 IO_CutoffRelay_Off(1);
 
-                IO_PilotYellow_Off(1);
+                IO_PilotYellow_On(1);
                 IO_PilotRed_Off(1);
                 IO_PilotGreen_Off(1);
 
@@ -341,6 +356,8 @@ void SystemManager_Process(void)
                  * Activate cutoff relay.
                  */
                 IO_CutoffRelay_On(1);
+                IO_PilotRed_Off(1);
+                IO_PilotGreen_Off(1);
 
                 /*
                  * Record shutdown activation time.
@@ -406,6 +423,15 @@ void SystemManager_Process(void)
                  */
                 system_state = SYSTEM_MONITORING;
                 system_state_health = SYSTEM_MONITORING;
+
+                if (condition == MACHINE_WORKING)
+                {
+                    /*
+                     * Machine has restarted / resumed work.
+                     */
+                    system_state = SYSTEM_MONITORING;
+                    system_state_health = SYSTEM_MONITORING;
+                }
             }
 
             break;
@@ -433,6 +459,8 @@ void SystemManager_Process(void)
             IO_PilotYellow_On(1);
             IO_PilotRed_Off(1);
             IO_PilotGreen_Off(1);
+
+            system_state = SYSTEM_MONITORING;
 
             /*
              * Remain in SYSTEM_FAULT.
