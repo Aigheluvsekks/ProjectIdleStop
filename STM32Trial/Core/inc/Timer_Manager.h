@@ -22,6 +22,9 @@ uint32_t Timer_Manager_GetElapsedTimeMs(void);
 uint32_t Timer_Manager_GetTargetTimeMs(void);
 bool Timer_Manager_IsExpired(void);
 
+void Timer_Manager_SetOperatingTime(OperatingTime_t opTime);
+OperatingTime_t Timer_Manager_GetOperatingTime(void);
+
 #ifdef __cplusplus
 }
 #endif

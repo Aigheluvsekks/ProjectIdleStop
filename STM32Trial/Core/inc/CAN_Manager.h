@@ -182,6 +182,7 @@ extern volatile uint32_t CAN_Error_Debug;
  */
 extern volatile bool CAN_Health_Debug;
 
+bool CAN_HasValidRPM(void);
 
 /* --------------------------------------------------------------------------
  * Other CAN Address Update Functions

@@ -12,4 +12,6 @@ typedef enum
 
 MachineCondition_t Decision_GetMachineCondition(void);
 
+bool Decision_HasWorkBeenDone(void);
+
 #endif
