@@ -3,109 +3,207 @@
 #include "stm32f4xx_hal.h"
 #include "System_Manager.h"
 
-/*
- * Bagian kode ini digunakan untuk monitoring kesehatan / cacat dari sistem CAN Exca
- * Diagnosis / kesehatan yang dipantau adalah terkait jumlah data yang dikirimkan
- * dalam satu waktu tertentu / keterbaruan data.
- *
- * Jika data yang diterima bersifat update dan baru, maka CAN dan sistem data dapat
- * dikategorikan sebagai sehat.
- *
- * Namun, jika data yang diterima bersifat tidak updata atau sudah 'basi' maka CAN dan sistem
- * data dapat dikategorikan sebagai tidak sehat / faulty/ error
- */
+/* ============================================================
+ * DEBUG VARIABLES
+ * ============================================================ */
 
 volatile SystemHealth_t debug_last_health;
 volatile uint32_t debug_rpm_age;
 volatile uint8_t debug_can_healthy;
 
+/* ============================================================
+ * RPM HEALTH PARAMETERS
+ * ============================================================ */
+
+/*
+ * RPM data dianggap stale setelah waktu ini.
+ *
+ * Contoh:
+ * RPM frame normal setiap ~100 ms
+ * Timeout = 140 ms
+ */
+#define RPM_TIMEOUT_MS        140U
+
+/*
+ * RPM harus tetap hilang selama waktu ini
+ * sebelum benar-benar dianggap FAULT.
+ *
+ * Jadi transient CAN/RPM loss tidak langsung
+ * membuat system fault.
+ */
+#define RPM_FAULT_CONFIRM_MS  1000U
+
+
+/* ============================================================
+ * INTERNAL RPM FAULT TIMER
+ * ============================================================ */
+
+/*
+ * Menyimpan waktu ketika RPM pertama kali dianggap stale.
+ *
+ * 0 = tidak sedang menunggu konfirmasi fault.
+ */
+static uint32_t rpmFaultStartTick = 0;
+
+
+/* ============================================================
+ * SYSTEM HEALTH
+ * ============================================================ */
+
 SystemHealth_t SystemHealth_Get(SystemState_t system_state_health)
 {
-	uint32_t lastRPM = CAN_GetLastRPMUpdate();
-	/* uint32_t lastSWINGL = CAN_GetLastSwingLUpdate();
-	uint32_t lastSWINGR = CAN_GetLastSwingRUpdate();
-	uint32_t lastBOOMD = CAN_GetLastBoomDUpdate();
-	uint32_t lastBOOMU = CAN_GetLastBoomUUpdate();
-	uint32_t lastARMDIG = CAN_GetLastArmDigUpdate();
-	uint32_t lastBUCKETDUMP = CAN_GetBucketDumpUpdate();
-	uint32_t lastTRAVELLR = CAN_GetTravelLRUpdate();
-	uint32_t lastTRAVELLF = CAN_GetTravelLFUpdate();
-	uint32_t lastTRAVELRR = CAN_GetTravelRRUpdate();
-	uint32_t lastTRAVELRF = CAN_GetTravelRFUpdate();
+    uint32_t lastRPM = CAN_GetLastRPMUpdate();
+    uint32_t now = HAL_GetTick();
 
-	Remove comment line to add other variables aside from RPM
-	*/
-	uint32_t now = HAL_GetTick();
+    debug_can_healthy = CAN_IsHealthy();
 
-	debug_can_healthy = CAN_IsHealthy();
-	debug_rpm_age = now - lastRPM;
+    /*
+     * ========================================================
+     * CAN HARDWARE HEALTH
+     * ========================================================
+     */
+
+    if (!debug_can_healthy)
+    {
+        /*
+         * CAN memang sedang OFF karena shutdown.
+         * Jangan dianggap sebagai fault.
+         */
+        if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
+        {
+            debug_last_health = SYSTEM_HEALTH_CAN_OFF_EXPECTED;
+
+            return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
+        }
+
+        /*
+         * CAN hardware benar-benar error.
+         *
+         * Untuk sekarang kita tetap anggap ini hard fault.
+         */
+        debug_last_health = SYSTEM_HEALTH_CAN_ERROR;
+
+        return SYSTEM_HEALTH_CAN_ERROR;
+    }
 
 
-	if(!debug_can_healthy)
-	{
-		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
-		    {
-				debug_last_health = SYSTEM_HEALTH_CAN_OFF_EXPECTED;
-		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
-		    }
+    /*
+     * ========================================================
+     * STARTUP / BEFORE FIRST RPM
+     * ========================================================
+     */
 
-		    return SYSTEM_HEALTH_CAN_ERROR;
-		}
+    /*
+     * Engine belum pernah mengirim RPM.
+     *
+     * Ini NORMAL.
+     *
+     * Excavator:
+     *
+     * Main Power ON
+     *      ↓
+     * ECU ON
+     *      ↓
+     * Engine belum start
+     *      ↓
+     * RPM belum ada
+     *
+     * Jangan fault di sini.
+     */
+    if (!CAN_HasValidRPM())
+    {
+        /*
+         * Tidak ada fault timer yang sedang berjalan.
+         */
+        rpmFaultStartTick = 0;
 
-	if(debug_rpm_age > RPM_TIMEOUT_MS)
-	{
-		if (system_state_health == SYSTEM_SHUTDOWN_ACTIVE)
-		    {
-				debug_last_health = SYSTEM_HEALTH_CAN_OFF_EXPECTED;
-		        return SYSTEM_HEALTH_CAN_OFF_EXPECTED;
-		    }
+        debug_rpm_age = 0;
 
-			debug_last_health = SYSTEM_HEALTH_CAN_TIMEOUT;
-		    return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	debug_last_health = SYSTEM_HEALTH_OK;
-	return SYSTEM_HEALTH_OK;
-	/*
-	if((now-lastSWINGL)>SWINGL_PRESS_TIMEOUT_MS)
-	{
-		return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastSWINGR)>SWINGR_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastBOOMD)>BOOMD_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastBOOMU)>BOOMU_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastARMDIG)>ARMDIG_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastTRAVELLR)>TRAVELLR_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastTRAVELLF)>TRAVELLF_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastTRAVELRR)>TRAVELRR_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastTRAVELRF)>TRAVELRF_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	if((now-lastBUCKETDUMP)>BUCKETDUMP_PRESS_TIMEOUT_MS)
-	{
-			return SYSTEM_HEALTH_CAN_TIMEOUT;
-	}
-	*/
-	return SYSTEM_HEALTH_OK;
+        debug_last_health = SYSTEM_HEALTH_OK;
+
+        return SYSTEM_HEALTH_OK;
+    }
+
+
+    /*
+     * ========================================================
+     * RPM HAS BEEN VALID
+     * ========================================================
+     */
+
+    /*
+     * Sekarang RPM memang sudah pernah diterima.
+     * Jadi lastRPM valid dan boleh digunakan untuk
+     * monitoring freshness.
+     */
+    debug_rpm_age = now - lastRPM;
+
+
+    /*
+     * ========================================================
+     * RPM STILL FRESH
+     * ========================================================
+     */
+
+    if (debug_rpm_age <= RPM_TIMEOUT_MS)
+    {
+        /*
+         * RPM kembali normal.
+         *
+         * Kalau sebelumnya sedang menunggu
+         * fault confirmation, batalkan.
+         */
+        rpmFaultStartTick = 0;
+
+        debug_last_health = SYSTEM_HEALTH_OK;
+
+        return SYSTEM_HEALTH_OK;
+    }
+
+
+    /*
+     * ========================================================
+     * RPM IS STALE
+     * ========================================================
+     */
+
+    /*
+     * RPM sudah melewati RPM_TIMEOUT_MS.
+     *
+     * JANGAN langsung fault.
+     *
+     * Mulai fault confirmation timer.
+     */
+    if (rpmFaultStartTick == 0)
+    {
+        rpmFaultStartTick = now;
+    }
+
+
+    /*
+     * ========================================================
+     * FAULT CONFIRMATION / HYSTERESIS
+     * ========================================================
+     */
+
+    /*
+     * RPM harus tetap stale selama
+     * RPM_FAULT_CONFIRM_MS sebelum fault.
+     */
+    if ((now - rpmFaultStartTick) >= RPM_FAULT_CONFIRM_MS)
+    {
+        debug_last_health = SYSTEM_HEALTH_CAN_TIMEOUT;
+
+        return SYSTEM_HEALTH_CAN_TIMEOUT;
+    }
+
+
+    /*
+     * RPM baru sebentar hilang.
+     *
+     * Belum cukup lama untuk dianggap fault.
+     */
+    debug_last_health = SYSTEM_HEALTH_OK;
+
+    return SYSTEM_HEALTH_OK;
 }
