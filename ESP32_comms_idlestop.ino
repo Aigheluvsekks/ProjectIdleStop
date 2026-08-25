@@ -17,6 +17,7 @@ const String CHAT_ID = "5213807799";
 #define RXD2 16      // ESP32 RX <- STM32 TX (PA9)
 #define TXD2 17      // ESP32 TX -> STM32 RX (PA10)
 
+
 // ============================================================
 // 2. OBJECTS
 // ============================================================
@@ -66,14 +67,21 @@ unsigned long idleStopCount = 0;
 
 
 // ============================================================
-// 7. SERIAL RECEIVE BUFFER
+// 7. OPERATING MODE
+// ============================================================
+
+String currentOperatingMode = "UNKNOWN";
+
+
+// ============================================================
+// 8. SERIAL RECEIVE BUFFER
 // ============================================================
 
 String stm32RxBuffer = "";
 
 
 // ============================================================
-// 8. TELEGRAM
+// 9. TELEGRAM
 // ============================================================
 
 unsigned long lastTelegramCheck = 0;
@@ -82,7 +90,7 @@ const unsigned long TELEGRAM_CHECK_INTERVAL_MS = 1000;
 
 
 // ============================================================
-// 9. WIFI CONNECTION
+// 10. WIFI CONNECTION
 // ============================================================
 
 void connectWiFi()
@@ -121,7 +129,7 @@ void connectWiFi()
 
 
 // ============================================================
-// 10. CHECK WIFI STATUS
+// 11. CHECK WIFI STATUS
 // ============================================================
 
 void updateInternetStatus()
@@ -146,7 +154,7 @@ void updateInternetStatus()
 
 
 // ============================================================
-// 11. SEND MESSAGE TO STM32
+// 12. SEND MESSAGE TO STM32
 // ============================================================
 
 void sendToSTM32(const char* message)
@@ -160,7 +168,7 @@ void sendToSTM32(const char* message)
 
 
 // ============================================================
-// 12. PROCESS ONE COMPLETE STM32 MESSAGE
+// 13. PROCESS ONE COMPLETE STM32 MESSAGE
 // ============================================================
 
 void processSTM32Message(String msg)
@@ -233,6 +241,117 @@ void processSTM32Message(String msg)
             bot.sendMessage(
                 CHAT_ID,
                 reply,
+                ""
+            );
+        }
+
+        return;
+    }
+
+
+    // ========================================================
+    // OPERATING MODE EVENT
+    // ========================================================
+    //
+    // STM32 sends:
+    //
+    // EVENT:MODE_IDLE_STOP
+    // EVENT:MODE_IDLE_OFF
+    // EVENT:MODE_SERVICE
+    // EVENT:MODE_INVALID
+    //
+    // These indicate that the physical operating-mode
+    // selector/knob has changed position.
+    // ========================================================
+
+    if (msg == "EVENT:MODE_IDLE_STOP")
+    {
+        currentOperatingMode =
+            "IDLE STOP ACTIVE";
+
+        Serial.println(
+            "Operating mode: IDLE STOP ACTIVE."
+        );
+
+        if (isInternetConnected)
+        {
+            bot.sendMessage(
+                CHAT_ID,
+                "IDLE STOP SYSTEM\n\n"
+                "Mode: IDLE STOP ACTIVE\n"
+                "Automatic shutdown: ENABLED.",
+                ""
+            );
+        }
+
+        return;
+    }
+
+
+    if (msg == "EVENT:MODE_IDLE_OFF")
+    {
+        currentOperatingMode =
+            "IDLE STOP OFF";
+
+        Serial.println(
+            "Operating mode: IDLE STOP OFF."
+        );
+
+        if (isInternetConnected)
+        {
+            bot.sendMessage(
+                CHAT_ID,
+                "IDLE STOP SYSTEM\n\n"
+                "Mode: IDLE STOP OFF\n"
+                "Automatic shutdown: DISABLED.",
+                ""
+            );
+        }
+
+        return;
+    }
+
+
+    if (msg == "EVENT:MODE_SERVICE")
+    {
+        currentOperatingMode =
+            "SERVICE";
+
+        Serial.println(
+            "Operating mode: SERVICE."
+        );
+
+        if (isInternetConnected)
+        {
+            bot.sendMessage(
+                CHAT_ID,
+                "IDLE STOP SYSTEM\n\n"
+                "Mode: SERVICE\n"
+                "Automatic shutdown: DISABLED.",
+                ""
+            );
+        }
+
+        return;
+    }
+
+
+    if (msg == "EVENT:MODE_INVALID")
+    {
+        currentOperatingMode =
+            "INVALID";
+
+        Serial.println(
+            "Operating mode: INVALID."
+        );
+
+        if (isInternetConnected)
+        {
+            bot.sendMessage(
+                CHAT_ID,
+                "IDLE STOP SYSTEM\n\n"
+                "WARNING: INVALID OPERATING MODE\n"
+                "Check the mode selector.",
                 ""
             );
         }
@@ -469,7 +588,7 @@ void processSTM32Message(String msg)
 
 
 // ============================================================
-// 13. READ STM32 UART
+// 14. READ STM32 UART
 // ============================================================
 
 void readSTM32Serial()
@@ -510,7 +629,7 @@ void readSTM32Serial()
 
 
 // ============================================================
-// 14. STM32 HEARTBEAT
+// 15. STM32 HEARTBEAT
 // ============================================================
 
 void handleSTM32Heartbeat()
@@ -561,7 +680,7 @@ void handleSTM32Heartbeat()
 
 
 // ============================================================
-// 15. TELEGRAM COMMAND HANDLER
+// 16. TELEGRAM COMMAND HANDLER
 // ============================================================
 
 void handleTelegramCommands(
@@ -619,6 +738,9 @@ void handleTelegramCommands(
             welcome +=
                 "/stmcond - View STM32 communication status\n";
 
+            welcome +=
+                "/mode - View current operating mode\n";
+
             bot.sendMessage(
                 chat_id,
                 welcome,
@@ -655,6 +777,53 @@ void handleTelegramCommands(
                     ""
                 );
             }
+
+            continue;
+        }
+
+
+        // ====================================================
+        // /mode
+        // ====================================================
+
+        if (text == "/mode")
+        {
+            String reply =
+                "CURRENT OPERATING MODE\n\n";
+
+            reply +=
+                "Mode: " +
+                currentOperatingMode;
+
+            if (currentOperatingMode ==
+                "IDLE STOP ACTIVE")
+            {
+                reply +=
+                    "\nAutomatic shutdown: ENABLED";
+            }
+            else if (currentOperatingMode ==
+                     "IDLE STOP OFF")
+            {
+                reply +=
+                    "\nAutomatic shutdown: DISABLED";
+            }
+            else if (currentOperatingMode ==
+                     "SERVICE")
+            {
+                reply +=
+                    "\nAutomatic shutdown: DISABLED";
+            }
+            else
+            {
+                reply +=
+                    "\nAutomatic shutdown: UNKNOWN";
+            }
+
+            bot.sendMessage(
+                chat_id,
+                reply,
+                ""
+            );
 
             continue;
         }
@@ -733,7 +902,7 @@ void handleTelegramCommands(
 
         // ====================================================
         // /history
-        // ========================================================
+        // ====================================================
 
         if (text == "/history")
         {
@@ -770,7 +939,7 @@ void handleTelegramCommands(
 
 
 // ============================================================
-// 16. CHECK TELEGRAM
+// 17. CHECK TELEGRAM
 // ============================================================
 
 void checkTelegram()
@@ -819,7 +988,7 @@ void checkTelegram()
 
 
 // ============================================================
-// 17. SETUP
+// 18. SETUP
 // ============================================================
 
 void setup()
@@ -896,7 +1065,7 @@ void setup()
 
 
 // ============================================================
-// 18. MAIN LOOP
+// 19. MAIN LOOP
 // ============================================================
 
 void loop()
