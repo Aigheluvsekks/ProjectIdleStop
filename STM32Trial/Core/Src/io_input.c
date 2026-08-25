@@ -3,9 +3,9 @@
 
 OperatingMode_t IO_GetOperatingMode(void)
 {
-	bool IdleStop_On_Signal = 1;
+	bool IdleStop_On_Signal = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_RESET;
 
-	bool Service_On_Signal = 0;
+	bool Service_On_Signal = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_0) == GPIO_PIN_RESET;
 
 	if(IdleStop_On_Signal && !Service_On_Signal) //Posisi Knob Idle
 	{
@@ -26,9 +26,9 @@ OperatingMode_t IO_GetOperatingMode(void)
 
 OperatingTime_t IO_GetOperatingTime(void)
 {
-	bool Time1_Signal = 1; // baca Signal untuk keadaan tim1
+	bool Time1_Signal = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1) == GPIO_PIN_RESET; // baca Signal untuk keadaan tim1
 
-	bool Time3_Signal = 0; // baca signal keadaaan time3
+	bool Time3_Signal = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_6) == GPIO_PIN_RESET; // baca signal keadaaan time3
 
 	if(Time1_Signal && !Time3_Signal) //Posisi Knob Preset Time 1
 	{
