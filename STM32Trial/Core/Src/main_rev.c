@@ -141,11 +141,11 @@ int main(void)
         SystemManager_Init();
         SystemManager_SetState(SYSTEM_MONITORING);
 
-        static bool prev_cutoff_state = false;
+
 
         /* USER CODE END 2 */
 
-        OperatingMode_t prev_mode = OpMode_Invalid;
+        OperatingMode_t prev_mode = IO_GetOperatingMode();
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
