@@ -126,6 +126,7 @@ void SystemManager_Process(void)
 
         system_state = SYSTEM_FAULT;
         IO_PilotYellow_On(1);
+        IO_PilotGreen_Off(1);
 
         return;
     }
@@ -230,7 +231,7 @@ void SystemManager_Process(void)
              */
             IO_CutoffRelay_Off(1);
 
-            IO_PilotGreen_On(1);
+            IO_PilotGreen_Off(1);
 
             HAL_GPIO_WritePin(
                 GPIOA,
