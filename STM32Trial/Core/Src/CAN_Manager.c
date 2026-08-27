@@ -37,6 +37,8 @@ volatile bool CAN_RX_Valid = false;
 /* Last RPM message timestamp */
 volatile uint32_t CAN_LastRPM_Update = 0;
 
+volatile bool CAN_RPM_Valid = false;
+
 /* CAN diagnostic state */
 volatile uint32_t CAN_State_Debug = 0;
 volatile uint32_t CAN_Error_Debug = 0;
@@ -436,6 +438,7 @@ void CAN_Manager_RxCallback(
             lastRpmUpdateTick = now;
 
             CAN_LastRPM_Update = lastRpmUpdateTick;
+            CAN_RPM_Valid = true;
 
 
             /*
@@ -540,4 +543,9 @@ bool CAN_IsHealthy(void)
     CAN_Health_Debug = false;
 
     return false;
+}
+
+bool CAN_HasValidRPM(void)
+{
+    return CAN_RPM_Valid;
 }
