@@ -1,57 +1,107 @@
-/**
-  ******************************************************************************
-  * @file    ESP32_Link.c
-  * @brief   STM32 to ESP32 Communication Link implementation
-  ******************************************************************************
-  */
-
 #include "ESP32_Link.h"
 #include <string.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-void ESP32_Link_Init(ESP32_HandleTypeDef *hesp, UART_HandleTypeDef *huart) {
+/**
+  * @brief Initialize ESP32 communication link and arm the UART RX interrupt.
+  */
+void ESP32_Link_Init(ESP32_HandleTypeDef *hesp, UART_HandleTypeDef *huart)
+{
+    if (hesp == NULL || huart == NULL)
+    {
+        return;
+    }
+
     hesp->huart = huart;
     hesp->RxIndex = 0;
+    hesp->RxByte = 0;
     hesp->NewDataReady = false;
-    memset(hesp->RxBuffer, 0, ESP32_RX_BUFFER_SIZE);
+    memset((void*)hesp->RxBuffer, 0, ESP32_RX_BUFFER_SIZE);
 
-    /* Start listening for the first byte via Interrupt */
-    HAL_UART_Receive_IT(hesp->huart, &hesp->RxByte, 1);
+    // Arm UART to receive 1 byte in interrupt mode
+    HAL_UART_Receive_IT(hesp->huart, (uint8_t*)&(hesp->RxByte), 1);
 }
 
-void ESP32_Link_Transmit(ESP32_HandleTypeDef *hesp, const char *payload) {
-    uint16_t len = strlen(payload);
-    /* Blocking transmit. For high-speed applications, consider HAL_UART_Transmit_DMA */
-    HAL_UART_Transmit(hesp->huart, (uint8_t*)payload, len, 100);
+/**
+  * @brief Transmit a null-terminated string to the ESP32.
+  */
+HAL_StatusTypeDef ESP32_Link_Transmit(ESP32_HandleTypeDef *hesp, const char *payload)
+{
+    if (hesp == NULL || hesp->huart == NULL || payload == NULL)
+    {
+        return HAL_ERROR;
+    }
+
+    uint16_t len = (uint16_t)strlen(payload);
+    if (len == 0)
+    {
+        return HAL_OK;
+    }
+
+    return HAL_UART_Transmit(hesp->huart, (uint8_t*)payload, len, 100);
 }
 
-void ESP32_Link_RxCallback(ESP32_HandleTypeDef *hesp) {
-    /* Check for end-of-line characters (Newline \n or Carriage Return \r) */
-    if (hesp->RxByte == '\n' || hesp->RxByte == '\r') {
-        if (hesp->RxIndex > 0) {
-            hesp->RxBuffer[hesp->RxIndex] = '\0'; /* Null-terminate the string */
-            hesp->NewDataReady = true;            /* Flag that a message is ready */
+/**
+  * @brief Process single byte RX and re-arm the interrupt (Called from HAL_UART_RxCpltCallback).
+  */
+void ESP32_Link_RxCallback(ESP32_HandleTypeDef *hesp)
+{
+    if (hesp == NULL || hesp->huart == NULL)
+    {
+        return;
+    }
+
+    // Check for delimiter / end of packet (\n or \r)
+    if (hesp->RxByte == '\n' || hesp->RxByte == '\r')
+    {
+        if (hesp->RxIndex > 0)
+        {
+            hesp->RxBuffer[hesp->RxIndex] = '\0';
+            hesp->NewDataReady = true;
         }
     }
-    else {
-        /* Store the byte if there is room in the buffer */
-        if (hesp->RxIndex < (ESP32_RX_BUFFER_SIZE - 1)) {
+    else
+    {
+        // Prevent buffer overrun
+        if (hesp->RxIndex < (ESP32_RX_BUFFER_SIZE - 1))
+        {
             hesp->RxBuffer[hesp->RxIndex++] = hesp->RxByte;
         }
+        else
+        {
+            // Reset on overflow to prevent corrupt un-terminated string
+            hesp->RxIndex = 0;
+        }
     }
 
-    /* Restart the interrupt to listen for the next byte */
-    HAL_UART_Receive_IT(hesp->huart, &hesp->RxByte, 1);
+    // Re-arm interrupt for the next byte
+    HAL_UART_Receive_IT(hesp->huart, (uint8_t*)&(hesp->RxByte), 1);
 }
 
-bool ESP32_Link_ReadMessage(ESP32_HandleTypeDef *hesp, char *outBuffer, uint16_t maxLen) {
-    if (hesp->NewDataReady) {
-        strncpy(outBuffer, (char*)hesp->RxBuffer, maxLen);
+/**
+  * @brief Read a completed message from the buffer if available.
+  */
+bool ESP32_Link_ReadMessage(ESP32_HandleTypeDef *hesp, char *outBuffer, uint16_t maxLen)
+{
+    if (hesp == NULL || outBuffer == NULL || maxLen == 0)
+    {
+        return false;
+    }
 
-        /* Reset state for the next message */
+    if (hesp->NewDataReady)
+    {
+        strncpy(outBuffer, (const char*)hesp->RxBuffer, maxLen - 1);
+        outBuffer[maxLen - 1] = '\0';
+
+        // Clear state and buffer for the next incoming frame
         hesp->RxIndex = 0;
+        memset((void*)hesp->RxBuffer, 0, ESP32_RX_BUFFER_SIZE);
         hesp->NewDataReady = false;
-        memset(hesp->RxBuffer, 0, ESP32_RX_BUFFER_SIZE);
+
         return true;
     }
+
     return false;
 }
