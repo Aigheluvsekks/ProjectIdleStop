@@ -3,6 +3,7 @@
 #include "System_Health.h"
 #include "Timer_Manager.h"
 #include "io_output.h"
+#include "Data_Logger.h"
 
 
 /* ============================================================
@@ -360,6 +361,8 @@ void SystemManager_Process(void)
                 IO_PilotRed_Off(1);
                 IO_PilotGreen_Off(1);
 
+                /* Log actual Idle Stop activation */
+                DataLogger_LogIdleStart();
                 /*
                  * Record shutdown activation time.
                  */
